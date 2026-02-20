@@ -88,7 +88,7 @@ personalized-cover-letter-generator/
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone <repository-link>
+git clone https://github.com/himansi-choudhary/personalized-cover-letter-generator.git
 cd personalized-cover-letter-generator
 ```
 
