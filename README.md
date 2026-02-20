@@ -458,7 +458,7 @@ This project is licensed under MIT License - see LICENSE file for details.
 
 **🚀 Ready to generate intelligent, personalized cover letters with advanced analysis!**
 
-**Repository**: https://github.com/Niladri-Peace/Personalized-Cover-Letter-Generator  
+**Repository**: https://github.com/Indhu-Vempatapu/Personalized-Cover-Letter-Generator  
 **Status**: Production Ready with Web API & Advanced Matching  
 **Last Updated**: January 2026  
 **Version**: 2.0 (Web API Integration)
