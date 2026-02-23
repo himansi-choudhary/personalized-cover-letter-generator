@@ -800,7 +800,7 @@
                 </div>
             </div>
         </div>
-    </section
+    </section>
 
     <!-- Contact Modal -->
     <div id="contactModal" class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/60">
@@ -833,6 +833,26 @@
                     Send Message
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Demo Video Modal -->
+    <div id="demoVideoModal" class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/70">
+
+        <div class="relative w-full max-w-4xl mx-4 rounded-2xl
+        bg-black border border-white/20 overflow-hidden">
+
+            <!-- Close Button -->
+            <button onclick="closeDemoVideo()"
+                class="absolute top-4 right-4 text-3xl text-white hover:text-gray-300 z-10">
+                &times;
+            </button>
+
+            <iframe id="demoIframe" class="w-full aspect-video"
+                src="https://www.youtube.com/embed/pOV7SLd-8Zw?autoplay=1&rel=0" frameborder="0"
+                allow="autoplay; encrypted-media" allowfullscreen>
+            </iframe>
+
         </div>
     </div>
 
@@ -1019,25 +1039,6 @@
     <script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2026/02/19/17/20260219174330-ZQB5XUZK.js" defer></script>
 
-    <!-- Demo Video Modal -->
-    <div id="demoVideoModal" class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black/70">
-
-        <div class="relative w-full max-w-4xl mx-4 rounded-2xl
-        bg-black border border-white/20 overflow-hidden">
-
-            <!-- Close Button -->
-            <button onclick="closeDemoVideo()"
-                class="absolute top-4 right-4 text-3xl text-white hover:text-gray-300 z-10">
-                &times;
-            </button>
-
-            <iframe id="demoIframe" class="w-full aspect-video"
-                src="https://www.youtube.com/embed/pOV7SLd-8Zw?autoplay=1&rel=0" frameborder="0"
-                allow="autoplay; encrypted-media" allowfullscreen>
-            </iframe>
-
-        </div>
-    </div>
 </body>
 
 </html>
