@@ -6,6 +6,7 @@ Basic implementation for web server functionality
 from typing import Dict, List, Optional, Tuple
 import re
 import random
+import time
 from datetime import datetime
 
 
@@ -234,20 +235,22 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
         ]
     
     def extract_job_info(self, job_description: str) -> Dict:
-        """Extract key information from job description."""
+        """Extract key information from job description with enhanced skill matching."""
         if not job_description:
             return {}
         
-        # Extract position - improved patterns
+        job_desc_lower = job_description.lower()
+        
+        # Extract position with enhanced patterns
         position_patterns = [
-            r'(?:position|role|job title)[:\s]+([^\n]+)',
-            r'(?:position|role|job title)[:\s]+([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',
             r'(?:hiring|seeking|looking for)\s+(?:a|an)?\s*([^\n]+?(?:engineer|developer|manager|analyst|specialist)[^\n]*)',
             r'(?:software|data|marketing|sales)\s+(?:engineer|developer|manager|analyst|specialist)',
             r'(?:we are|we\'re)\s+(?:looking for|hiring|seeking)\s+(?:a|an)?\s*([^\n]+?(?:engineer|developer|manager|analyst|specialist)[^\n]*)',
             r'(?:Fresher|Junior|Senior|Lead|Principal)\s+([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)',
             r'([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*\((?:Fresher|Junior|Senior|Lead|Principal)\)',
-            r'(?:engineer|developer|manager|analyst|specialist)'
+            # Add pattern for explicit role mention in job description
+            r'(?:position|role|title)[:\s]*([^\n]+?(?:engineer|developer|manager|analyst|specialist)[^\n]*)',
+            r'(?:for\s+the\s+)([^\n]+?(?:engineer|developer|manager|analyst|specialist)[^\n]*)',
         ]
         
         position = "Professional"
@@ -255,58 +258,161 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
             match = re.search(pattern, job_description, re.IGNORECASE)
             if match:
                 if pattern == r'(?:engineer|developer|manager|analyst|specialist)':
-                    # For this pattern, we need to get more context
-                    position = match.group(0).strip()
-                    print(f"🔍 Debug: Position extracted (general) - Pattern: {pattern}, Position: {position}")
+                    position = match.group(1).strip()
                 else:
                     position = match.group(1).strip()
-                    print(f"🔍 Debug: Position extracted (specific) - Pattern: {pattern}, Raw: {match.group(1)}")
-                    # Clean up the position - remove trailing phrases and extra words
-                    position = match.group(1).strip()
-                    
-                    # First, limit to reasonable length and remove line breaks
-                    position = position.split('\n')[0].strip()
-                    position = re.sub(r'\s+', ' ', position)  # Normalize whitespace
-                    
-                    # Remove experience level indicators in parentheses first
-                    position = re.sub(r'\s*\([^)]*\)', '', position).strip()
-                    
-                    # Remove trailing phrases ONLY after specific keywords, not after the main position
-                    position = re.sub(r'\s+(?:with|for|who|that|and|the|a|an|to|join|our|innovative|team|experience|required|looking|team).*$', '', position, flags=re.IGNORECASE)
-                    position = re.sub(r'[.!?]+$', '', position).strip()
-                    
-                    # Only remove trailing position/role/job if they're standalone words
-                    position = re.sub(r'\s+(?:position|role|job)$', '', position, flags=re.IGNORECASE).strip()
-                    
-                    # Remove leading experience level indicators
-                    position = re.sub(r'^(?:Fresher|Junior|Senior|Lead|Principal)\s+', '', position, flags=re.IGNORECASE).strip()
-                    
-                    print(f"🔍 Debug: Position after cleaning: {position}")
                 break
-        else:
-            print(f"🔍 Debug: No position found in job_description: {job_description[:100]}...")
         
-        # Extract skills
+        # Enhanced skill extraction with role-specific prioritization
         skills = []
-        for category, skill_list in self.skill_database.items():
-            for skill in skill_list:
-                if skill.lower() in job_description.lower():
-                    skills.append(skill)
+        
+        # Clean the entire job description first to remove all line breaks
+        job_desc_clean = job_description.replace('\n', ' ').replace('\r', ' ').replace('  ', ' ')
+        job_desc_lower = job_desc_clean.lower()
+        
+        # Priority 1: Direct extraction from job description
+        skill_patterns = [
+            r'expertise in ([^.]+)',
+            r'skills in ([^.]+)',
+            r'with ([^.]+)',
+            r'proficiency in ([^.]+)',
+            r'knowledge of ([^.]+)',
+            r'experience with ([^.]+)',
+            r'requirements?:? ([^.]+)',
+            r'seeking ([^.]+)',
+            r'looking for ([^.]+)',
+            r'including ([^.]+)',
+            r'specializing in ([^.]+)',
+            r'background in ([^.]+)',
+            r'familiar with ([^.]+)',
+            r'working knowledge of ([^.]+)'
+        ]
+        
+        for pattern in skill_patterns:
+            matches = re.findall(pattern, job_desc_lower)
+            for match in matches:
+                # Clean up the match and handle line breaks
+                cleaned_match = match.replace('\n', ' ').replace('\r', ' ').replace('  ', ' ')
+                extracted_skills = [skill.strip() for skill in cleaned_match.split(',')]
+                for skill in extracted_skills:
+                    skill = skill.replace('\n', ' ').replace('\r', ' ').replace('  ', ' ').strip()
+                    if skill and len(skill) > 1 and skill not in skills:
+                        skills.append(skill)
+        
+        # Priority 2: Role-specific skill database matching (HIGHEST PRIORITY)
+        role_skills = {
+            'devops': ['docker', 'kubernetes', 'jenkins', 'ci/cd', 'aws', 'azure', 'terraform', 'ansible'],
+            'data scientist': ['python', 'machine learning', 'tensorflow', 'pytorch', 'pandas', 'numpy', 'data analysis', 'statistics'],
+            'full stack developer': ['react', 'node.js', 'javascript', 'typescript', 'html', 'css', 'express', 'mongodb'],
+            'frontend developer': ['react', 'vue', 'angular', 'javascript', 'typescript', 'html', 'css', 'sass'],
+            'backend developer': ['node.js', 'express', 'python', 'java', 'django', 'flask', 'microservices', 'rest api'],
+            'mobile developer': ['react native', 'flutter', 'ios', 'android', 'swift', 'kotlin'],
+            'ml engineer': ['python', 'tensorflow', 'pytorch', 'scikit-learn', 'machine learning', 'deep learning']
+        }
+        
+        # Add role-specific skills based on position (CLEAR AND REPLACE GENERIC SKILLS)
+        position_lower = position.lower()
+        role_matched = False
+        
+        # Check for exact matches first, then partial matches
+        for role, role_skill_list in role_skills.items():
+            # Exact match first
+            if role == position_lower:
+                role_matched = True
+                skills = []
+                for skill in role_skill_list:
+                    if len(skills) < 6:
+                        skills.append(skill)
+                print(f"🔍 Debug: Exact role matched: {role} -> Skills: {skills}")
+                break
+            # Then check for partial matches
+            elif role in position_lower or position_lower in role:
+                role_matched = True
+                skills = []
+                for skill in role_skill_list:
+                    if len(skills) < 6:
+                        skills.append(skill)
+                print(f"🔍 Debug: Partial role matched: {role} -> Skills: {skills}")
+                break
+            # Finally check for keyword matches
+            elif any(keyword in position_lower for keyword in role.split()):
+                role_matched = True
+                skills = []
+                for skill in role_skill_list:
+                    if len(skills) < 6:
+                        skills.append(skill)
+                print(f"🔍 Debug: Keyword role matched: {role} -> Skills: {skills}")
+                break
+        
+        if not role_matched:
+            print(f"🔍 Debug: No role matched for position: {position_lower}")
+        else:
+            print(f"🔍 Debug: Successfully matched role for position: {position_lower}")
+        
+        # Priority 3: Enhanced database matching (only if no role matched)
+        if not role_matched:
+            for category, skill_list in self.skill_database.items():
+                for skill in skill_list:
+                    skill_lower = skill.lower()
+                    if (skill_lower in job_desc_lower and 
+                        skill_lower not in skills and 
+                        len(skills) < 8):
+                        skills.append(skill)
         
         # Extract company values
-        values_keywords = ['innovation', 'excellence', 'collaboration', 'growth', 'integrity', 'diversity', 'customer focus']
+        values_keywords = ['innovation', 'excellence', 'collaboration', 'growth', 'integrity', 'diversity', 'customer focus', 'sustainability']
         company_values = []
         for value in values_keywords:
-            if value.lower() in job_description.lower():
+            if value.lower() in job_desc_lower:
                 company_values.append(value)
         
         return {
             'position': position,
-            'skills': ', '.join(skills[:5]) if skills else 'relevant technologies',
+            'skills': ', '.join(skills[:6]) if skills else 'relevant technologies',
             'company_values': ', '.join(company_values[:3]) if company_values else 'innovation and excellence'
         }
     
-    def extract_user_info(self, user_input: str) -> Dict:
+    def extract_job_info_with_target_role(self, job_description: str, target_role: str = "") -> Dict:
+        """Extract key information from job description with target role fallback."""
+        print(f"🔍 Debug: extract_job_info_with_target_role called with target_role: '{target_role}'")
+        
+        # First try normal extraction
+        job_info = self.extract_job_info(job_description)
+        print(f"🔍 Debug: Original job_info position: '{job_info.get('position', 'N/A')}'")
+        print(f"🔍 Debug: Original job_info skills: '{job_info.get('skills', 'N/A')}'")
+        
+        # If no position found or position is generic, use target_role
+        if (job_info.get('position', 'Professional') == 'Professional' or 
+            'position' not in job_info or 
+            not job_info.get('position')) and target_role:
+            print(f"🔍 Debug: Using target_role fallback: '{target_role}'")
+            job_info['position'] = target_role
+            # Re-run role matching with the target role
+            position_lower = target_role.lower()
+            role_skills = {
+                'devops': ['docker', 'kubernetes', 'jenkins', 'ci/cd', 'aws', 'azure', 'terraform', 'ansible'],
+                'data scientist': ['python', 'machine learning', 'tensorflow', 'pytorch', 'pandas', 'numpy', 'data analysis', 'statistics'],
+                'full stack developer': ['react', 'node.js', 'javascript', 'typescript', 'html', 'css', 'express', 'mongodb'],
+                'frontend developer': ['react', 'vue', 'angular', 'javascript', 'typescript', 'html', 'css', 'sass'],
+                'backend developer': ['node.js', 'express', 'python', 'java', 'django', 'flask', 'microservices', 'rest api'],
+                'mobile developer': ['react native', 'flutter', 'ios', 'android', 'swift', 'kotlin'],
+                'ml engineer': ['python', 'tensorflow', 'pytorch', 'scikit-learn', 'machine learning', 'deep learning']
+            }
+            
+            print(f"🔍 Debug: Checking role matching for position_lower: '{position_lower}'")
+            for role, role_skill_list in role_skills.items():
+                if role in position_lower or position_lower in role or any(keyword in position_lower for keyword in role.split()):
+                    print(f"🔍 Debug: Role matched! {role} -> {role_skill_list}")
+                    job_info['skills'] = ', '.join(role_skill_list[:6])
+                    break
+            else:
+                print(f"🔍 Debug: No role matched for '{position_lower}'")
+        
+        print(f"🔍 Debug: Final job_info position: '{job_info.get('position', 'N/A')}'")
+        print(f"🔍 Debug: Final job_info skills: '{job_info.get('skills', 'N/A')}'")
+        return job_info
+    
+    def extract_user_info(self, user_input: str, job_info: Dict = None) -> Dict:
         """Extract key information from user input."""
         if not user_input:
             return {}
@@ -375,9 +481,13 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
         else:
             print(f"🔍 Debug: No experience found in user_input: {user_input[:100]}...")
         
-        # Extract skills - exclude experience phrases more aggressively
+        # Extract skills - prioritize job-specific skills from job_info
         skills = []
-        user_input_lower = user_input.lower()
+        
+        # Clean user input completely to remove all line breaks and extra spaces
+        user_input_clean = user_input.replace('\n', ' ').replace('\r', ' ').replace('  ', ' ').replace('   ', ' ')
+        user_input_lower = user_input_clean.lower()
+        job_skills_lower = job_info.get('skills', '').lower() if job_info else ''
         
         # Remove ALL experience phrases from user input to avoid false skill matches
         cleaned_input = user_input_lower
@@ -388,21 +498,72 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
         cleaned_input = re.sub(r'focused\s+on\s+building\s+comprehensive\s+skills\s+in\s+\d+\s*years?\s+(?:of\s+)?(?:professional\s+)?experience\s+developing\s+robust\s+solutions\s+with', '', cleaned_input)
         cleaned_input = re.sub(r'characterized\s+by\s+continuous\s+growth\s+and\s+learning\s+in\s+\d+\s*years?\s+(?:of\s+)?(?:professional\s+)?experience\s+developing\s+robust\s+solutions\s+with', '', cleaned_input)
         
-        print(f"🔍 Debug: Original user_input: {user_input[:200]}...")
-        print(f"🔍 Debug: Cleaned input for skills: {cleaned_input[:200]}...")
+        # Additional cleaning to remove any remaining line breaks or weird spacing
+        cleaned_input = re.sub(r'\s+', ' ', cleaned_input)  # Normalize all whitespace
+        cleaned_input = cleaned_input.replace('deployingai', 'deploying ai')  # Fix specific "deployingai" issue
+        cleaned_input = cleaned_input.replace('deploying ', 'deploying')  # Fix specific "deploying" gap issue
+        cleaned_input = cleaned_input.replace('deploying  ', 'deploying')  # Fix double spaces after deploying
         
+        # Debug logging (comment out in production)
+        # print(f"🔍 Debug: Original user_input: {user_input[:200]}...")
+        # print(f"🔍 Debug: Cleaned input for skills: {cleaned_input[:200]}...")
+        # print(f"🔍 Debug: Job skills: {job_skills_lower}")
+        
+        # Extract job skills first (highest priority)
+        job_skill_list = [skill.strip().lower() for skill in job_skills_lower.split(',') if skill.strip()]
+        
+        # Add job-specific skills that match user input
+        for job_skill in job_skill_list:
+            if job_skill in cleaned_input and job_skill not in skills:
+                skills.append(job_skill)
+        
+        # Extract user skills from input (secondary priority)
+        user_skill_patterns = [
+            r'experience in ([^.]+)',
+            r'skilled in ([^.]+)',
+            r'proficient in ([^.]+)',
+            r'knowledge of ([^.]+)',
+            r'expertise in ([^.]+)',
+            r'background in ([^.]+)',
+            r'foundation in ([^.]+)'
+        ]
+        
+        user_skills_found = []
+        for pattern in user_skill_patterns:
+            matches = re.findall(pattern, cleaned_input)
+            for match in matches:
+                extracted_skills = [skill.strip().lower() for skill in match.split(',')]
+                for skill in extracted_skills:
+                    if skill and len(skill) > 1 and skill not in user_skills_found:
+                        user_skills_found.append(skill)
+        
+        # Add user skills that match job requirements
+        for user_skill in user_skills_found:
+            if user_skill not in skills and len(skills) < 5:
+                # Check if user skill relates to any job skill
+                job_related = any(
+                    user_skill in job_skill or 
+                    job_skill in user_skill or
+                    any(word in user_skill for word in job_skill.split()) or
+                    any(word in job_skill for word in user_skill.split())
+                    for job_skill in job_skill_list
+                )
+                if job_related or len(skills) < 3:  # Add if job-related or need more skills
+                    skills.append(user_skill)
+        
+        # Then extract from skill database (fallback)
         for category, skill_list in self.skill_database.items():
             for skill in skill_list:
                 skill_lower = skill.lower()
-                # Only match if skill appears as a standalone skill, not part of experience phrase
                 if (skill_lower in cleaned_input and 
+                    skill_lower not in skills and 
                     not any(exp_phrase in cleaned_input for exp_phrase in [
                         f'{skill_lower} years', f'years {skill_lower}', 
                         f'experience {skill_lower}', f'{skill_lower} experience',
                         f'developing robust solutions with {skill_lower}',
                         f'professional experience developing robust solutions with {skill_lower}'
-                    ])):
-                    print(f"🔍 Debug: Skill found: {skill}")
+                    ]) and len(skills) < 5):
+                    # print(f"🔍 Debug: Skill found: {skill}")
                     skills.append(skill)
         
         # Extract achievements
@@ -415,8 +576,8 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
         return {
             'name': name,
             'years': years,
-            'skills': ', '.join(skills[:5]) if skills else 'relevant technologies',
-            'achievements': ', '.join(achievements[:3]) if achievements else 'delivering successful projects',
+            'skills': ', '.join([skill.replace('\n', ' ').replace('\r', ' ').strip() for skill in skills[:5]]) if skills else 'relevant technologies',
+            'achievements': ', '.join([achievement.replace('\n', ' ').replace('\r', ' ').strip() for achievement in achievements[:3]]) if achievements else 'delivering successful projects',
             'experience_level': self._determine_experience_level(years)
         }
     
@@ -455,8 +616,104 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
             return 'professional'
     
     def _generate_dynamic_content(self, job_info: Dict, user_info: Dict, content_type: str = "general") -> str:
-        """Generate dynamic content based on context and content type."""
+        """Generate dynamic content based on context and content type with true randomness."""
         if not job_info or not user_info:
+            return "professional growth and development"
+        
+        # Use time-based seed with microsecond precision and additional entropy for true randomness
+        import os
+        entropy_source = int(time.time() * 1000000) + os.getpid() + int.from_bytes(os.urandom(4), 'big')
+        random.seed(entropy_source)
+        
+        company = job_info.get('company', 'the company')
+        user_skills = user_info.get('skills', '').lower()
+        experience_level = user_info.get('experience_level', 'mid-level')
+        user_years = user_info.get('years', '0 years')
+        
+        # Dynamic content generation based on type
+        if content_type == "company_alignment":
+            company_content = [
+                f"your innovative approach to emerging technologies and digital transformation",
+                f"your commitment to excellence and pushing technological boundaries",
+                f"your focus on creating meaningful impact through cutting-edge solutions",
+                f"your dedication to solving complex challenges with innovative approaches",
+                f"your culture of continuous learning and professional growth",
+                f"your vision for transforming the industry through technology",
+                f"your emphasis on quality, user experience, and scalable solutions",
+                f"your leadership in the technology sector",
+                f"your reputation for delivering breakthrough innovations",
+                f"your forward-thinking approach to technological advancement",
+                f"your excellence in developing next-generation solutions"
+            ]
+            return random.choice(company_content)
+        
+        elif content_type == "value_proposition":
+            if experience_level == 'fresher':
+                value_content = [
+                    f"my fresh perspective combined with strong theoretical foundations",
+                    f"my enthusiasm for learning and adapting to new technologies",
+                    f"my academic excellence and practical project experience",
+                    f"my ability to bring new ideas and energy to established teams",
+                    f"my strong foundation in modern development practices"
+                ]
+            elif experience_level == 'mid-level':
+                value_content = [
+                    f"my proven ability to bridge technical solutions with business needs",
+                    f"my experience in both individual contributions and team leadership",
+                    f"my track record of delivering projects on time and exceeding expectations",
+                    f"my expertise in scaling applications and optimizing performance",
+                    f"my experience in leading cross-functional teams to success"
+                ]
+            else:  # experienced
+                value_content = [
+                    f"my extensive background in system architecture and strategic planning",
+                    f"my leadership experience in mentoring teams and driving innovation",
+                    f"my proven ability to transform business requirements into technical solutions",
+                    f"my expertise in enterprise-level development and best practices",
+                    f"my track record of successful project delivery and team building"
+                ]
+            return random.choice(value_content)
+        
+        elif content_type == "career_aspiration":
+            career_content = [
+                f"contributing to {company}'s mission of technological excellence",
+                f"growing professionally while delivering value to your organization",
+                f"applying my skills to solve meaningful challenges at {company}",
+                f"becoming an integral part of your innovative team",
+                f"advancing my career while helping {company} achieve its goals",
+                f"leveraging my expertise to drive {company}'s success",
+                f"making a lasting impact through technical excellence and innovation",
+                f"building a future together through collaboration and shared success"
+            ]
+            return random.choice(career_content)
+        
+        elif content_type == "skills_demonstration":
+            user_skill_list = [skill.strip() for skill in user_info.get('skills', '').split(',') if skill.strip()]
+            if user_skill_list:
+                skill_content = [
+                    f"my hands-on experience with {', '.join(user_skill_list[:3])} in real-world projects",
+                    f"my proven track record of delivering solutions using {', '.join(user_skill_list[:3])}",
+                    f"my expertise in developing robust applications with {', '.join(user_skill_list[:3])}",
+                    f"my comprehensive understanding of {', '.join(user_skill_list[:3])} and best practices",
+                    f"my ability to leverage {', '.join(user_skill_list[:3])} to solve complex business problems"
+                ]
+                return random.choice(skill_content)
+            else:
+                general_skills = ["modern technologies", "innovative solutions", "scalable systems", "best practices"]
+                return random.choice(general_skills)
+        
+        else:  # general content
+            general_content = [
+                "professional growth and development",
+                "innovative technology solutions", 
+                "scalable system architecture",
+                "cutting-edge development practices",
+                "business-driven technology solutions",
+                "enterprise-level software development",
+                "strategic technical innovation",
+                "continuous learning and skill advancement"
+            ]
+            return random.choice(general_content)
             return "professional growth and development"
         
         user_skills = user_info.get('skills', '').lower()
@@ -483,7 +740,10 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
                 f"your culture of continuous learning and professional growth",
                 f"your vision for transforming the industry through technology",
                 f"your emphasis on quality, user experience, and scalable solutions",
-                f"your leadership in the technology sector"
+                f"your leadership in the technology sector",
+                f"your reputation for delivering breakthrough innovations",
+                f"your forward-thinking approach to technological advancement",
+                f"your excellence in developing next-generation solutions"
             ]
             return random.choice(company_content)
         
@@ -498,7 +758,7 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
                 ]
                 return random.choice(skill_content)
             else:
-                fallback_skills = ["modern technologies", "innovative solutions", "scalable systems", "best practices"]
+                fallback_skills = ["modern technologies", "innovative solutions", "scalable systems", "best practices", "cutting-edge development", "advanced problem-solving", "strategic technical thinking"]
                 return random.choice(fallback_skills)
         
         elif content_type == "value_proposition":
@@ -535,7 +795,9 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
                 f"applying my skills to solve meaningful challenges at {company}",
                 f"becoming an integral part of your innovative team",
                 f"advancing my career while helping {company} achieve its goals",
-                f"leveraging my expertise to drive {company}'s success"
+                f"leveraging my expertise to drive {company}'s success",
+                f"making a lasting impact through technical excellence and innovation",
+                f"building a future together through collaboration and shared success"
             ]
             return random.choice(aspiration_content)
         
@@ -549,7 +811,9 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
                     "scalable system architecture",
                     "cutting-edge development practices",
                     "business-driven technology solutions",
-                    "enterprise-level software development"
+                    "enterprise-level software development",
+                    "strategic technical innovation",
+                    "continuous learning and skill advancement"
                 ]
                 return random.choice(general_content)
     
@@ -637,8 +901,9 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
     def generate_cover_letter(self, job_description: str, user_input: str, 
                             best_match_content: str = "", company: str = "", experience_level: str = "", target_role: str = "") -> str:
         """Generate a personalized cover letter."""
-        job_info = self.extract_job_info(job_description)
-        user_info = self.extract_user_info(user_input)
+        # Use enhanced job info extraction with target_role fallback
+        job_info = self.extract_job_info_with_target_role(job_description, target_role)
+        user_info = self.extract_user_info(user_input, job_info)
         
         # Determine experience level if not provided
         if not experience_level:
@@ -703,27 +968,53 @@ With my background in {key_skills}, I offer {career_aspiration}. I have experien
             skill_narrative = re.sub(r'extensive\s+background\s+in\s+([^.]+)\s+with\s+expertise\s+in\s+system\s+architecture\s+and\s+optimization', r'\1', skill_narrative, flags=re.IGNORECASE)
             skill_narrative = re.sub(r'\s+', ' ', skill_narrative).strip()
         
-        # Prepare template variables with randomization for variety
-        random.seed()  # Reset seed for true randomness
+        # Prepare template variables with role-specific skills and randomization
+        import os
+        entropy_source = int(time.time() * 1000000) + os.getpid() + int.from_bytes(os.urandom(4), 'big')
+        random.seed(entropy_source)  # Use microseconds + PID + random bytes for true randomness
+        
+        # Generate multiple dynamic content elements for true variety
+        dynamic_company_alignment = self._generate_dynamic_content(job_info, user_info, "company_alignment")
+        dynamic_value_proposition = self._generate_dynamic_content(job_info, user_info, "value_proposition")
+        dynamic_career_aspiration = self._generate_dynamic_content(job_info, user_info, "career_aspiration")
+        dynamic_skills_demonstration = self._generate_dynamic_content(job_info, user_info, "skills_demonstration")
+        
+        # Create role-specific skill narrative
+        user_skills_list = user_info.get('skills', '').split(', ') if user_info.get('skills') else []
+        if user_skills_list:
+            skill_narrative = f"proficiency in {', '.join(user_skills_list[:4])}"
+        else:
+            skill_narrative = job_info.get('skills', user_skills)
+        
         template_vars = {
             'hiring_manager': 'Hiring Manager',
             'position': target_role or job_info.get('position', 'Professional position'),
             'company': company or job_info.get('company', 'the Company'),
-            'key_skills': skill_narrative if 'skill_narrative' in locals() else job_info.get('skills', user_skills),
-            'matched_content': best_match_content or self._generate_dynamic_content(job_info, user_info, "skills_demonstration"),
+            'key_skills': skill_narrative,  # Now role-specific
+            'matched_content': dynamic_skills_demonstration,  # Use dynamic content
             'years_experience': user_info.get('years', '0 years'),
             'candidate_name': user_info.get('name', 'Candidate'),
             'company_values': job_info.get('company_values', 'innovation and excellence'),
             'key_achievements': user_info.get('achievements', 'delivering successful projects'),
             'professional_values': 'professional excellence',
-            'specialized_skills': skill_narrative if 'skill_narrative' in locals() else user_skills,
+            'specialized_skills': skill_narrative,  # Now role-specific
             'opening_phrase': random.choice(self.opening_phrases),
             'closing_phrase': random.choice(self.closing_phrases),
-            'tone': tone,
-            'dynamic_content': self._generate_dynamic_content(job_info, user_info, "company_alignment"),
-            'value_proposition': self._generate_dynamic_content(job_info, user_info, "value_proposition"),
-            'career_aspiration': self._generate_dynamic_content(job_info, user_info, "career_aspiration")
+            'dynamic_content': dynamic_company_alignment,  # Add dynamic content
+            'value_proposition': dynamic_value_proposition,  # Add value proposition
+            'career_aspiration': dynamic_career_aspiration,  # Add career aspiration
         }
+        
+        # Determine tone for the cover letter
+        tone = self._determine_tone(job_info, user_info)
+        
+        # Add additional dynamic content variables
+        template_vars.update({
+            'tone': tone,
+            'dynamic_content': dynamic_company_alignment,
+            'value_proposition': dynamic_value_proposition,
+            'career_aspiration': dynamic_career_aspiration
+        })
         
         try:
             # Generate cover letter

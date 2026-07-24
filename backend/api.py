@@ -179,7 +179,7 @@ def generate_cover_letter():
         print(f"Resume text length: {len(resume_text)}")
         print(f"Experience level: {experience_level}")
         
-        # Generate cover letter based on method
+        # Generate cover letter based on method - UNIFIED APPROACH
         if method == 'skills':
             if not user_input:
                 return jsonify({'error': 'User input is required for skills-based generation'}), 400
@@ -189,42 +189,9 @@ def generate_cover_letter():
             if not resume_text and not user_input:
                 return jsonify({'error': 'Resume text or user input is required for resume-based generation'}), 400
             
-            # Process resume like CLI does - extract clean info first
-            if resume_text:
-                # Extract info from raw resume text (like CLI does)
-                resume_info = generator.extract_user_info(resume_text)
-                extracted_name = resume_info.get('name', 'Candidate')
-                extracted_years = resume_info.get('years', '3 years')
-                extracted_skills = resume_info.get('skills', 'python, java, javascript')
-                
-                # Create clean input like CLI format for skills/experience
-                clean_input = f"My name is {extracted_name} and I have {extracted_years}. I am skilled in {extracted_skills}."
-                print(f"🔍 Frontend Debug - Clean input created: {clean_input}")
-                
-                # Use ORIGINAL resume text for generation (like CLI does)
-                input_text = resume_text
-                personal_input = clean_input
-            else:
-                # Use user_input directly if no resume_text
-                input_text = user_input
-                personal_input = user_input
-            
+            # Use unified method for consistency
+            input_text = resume_text if resume_text else user_input
             cover_letter = generator.generate_cover_letter(job_description, input_text, company=company, experience_level=experience_level, target_role=target_role)
-            # The generator.py already handles the name via candidate_name template variable
-            # Just clean up any trailing resume content if needed
-            if resume_text:
-                lines = cover_letter.split('\n')
-                cleaned_lines = []
-                
-                for line in lines:
-                    line_stripped = line.strip()
-                    # Skip resume section headers and everything after
-                    if any(header in line_stripped for header in ['Career Objective', 'Education', 'Technical Skills', 'Experience', 'Projects']):
-                        break
-                    cleaned_lines.append(line)
-                
-                cover_letter = '\n'.join(cleaned_lines)
-                print(f"🔍 Web API Debug - Cover letter after cleanup: {cover_letter[-200:]}")
             
         elif method == 'manual_jd':
             if not job_description:

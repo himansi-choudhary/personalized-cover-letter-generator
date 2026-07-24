@@ -166,33 +166,18 @@ async function generateFromSkills() {
         return;
     }
 
-    // Automatically add years to user input if not already mentioned
+    // Let backend handle experience extraction naturally - no forced enhancement
     let enhancedUserInput = userInput;
-    console.log('🔍 Frontend Debug - Before enhancement:', enhancedUserInput);
-    console.log('🔍 Frontend Debug - Years value:', years);
-    console.log('🔍 Frontend Debug - User input includes "year":', userInput.toLowerCase().includes('year'));
-
-    // Force years to be included
-    if (years && years !== '0' && years !== '') {
-        // Check if user input already mentions WORK experience (not art, education, etc.)
-        const workExperiencePatterns = [
-            /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?(?:work|professional|industry|technical|software|programming|development|experience)/i,
-            /(?:work|professional|industry|technical|software|programming|development|experience)[:\s]+(\d+)\s*(?:years?|yr)s?/i,
-            /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?experience/i
-        ];
-
-        const hasWorkExperience = workExperiencePatterns.some(pattern => pattern.test(userInput));
-
-        if (!hasWorkExperience) {
-            enhancedUserInput = `I have ${years} years of experience. ${userInput}`;
-            console.log('🔍 Frontend Debug - After enhancement:', enhancedUserInput);
-        } else {
-            console.log('🔍 Frontend Debug - User already contains work experience, no enhancement needed');
-        }
+    console.log('🔍 Skills Debug - Original input:', userInput);
+    console.log('🔍 Skills Debug - Years provided:', years);
+    console.log('🔍 Skills Debug - Experience level:', experience);
+    
+    // Only add basic info if completely missing, let backend do the sophisticated extraction
+    if (!userInput.toLowerCase().includes('year') && !userInput.toLowerCase().includes('experience') && years && years !== '0' && years !== '') {
+        enhancedUserInput = `${userInput} Experience: ${years} years`;
+        console.log('🔍 Skills Debug - Minimal enhancement:', enhancedUserInput);
     } else {
-        console.log('🔍 Frontend Debug - No valid years provided, forcing default');
-        enhancedUserInput = `I have 3 years of experience. ${userInput}`;
-        console.log('🔍 Frontend Debug - Forced enhancement:', enhancedUserInput);
+        console.log('🔍 Skills Debug - Using original input, backend will handle extraction');
     }
 
     await generateCoverLetter('skills', enhancedUserInput, jobDescription, targetRole, company, '', experience);
@@ -235,34 +220,18 @@ async function generateFromResume() {
     console.log('🔍 Resume Debug - Resume input length:', resumeInput.length);
     console.log('🔍 Resume Debug - Before enhancement:', resumeInput.substring(0, 100) + '...');
 
-    // Automatically add years to resume input if not already mentioned
+    // Let backend handle experience extraction naturally - no forced enhancement
     let enhancedResumeInput = resumeInput;
-    if (years && years !== '0' && years !== '') {
-        // Check if resume already mentions WORK experience (not art, education, etc.)
-        const workExperiencePatterns = [
-            /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?(?:work|professional|industry|technical|software|programming|development|experience)(?!.*art)/i,
-            /(?:work|professional|industry|technical|software|programming|development|experience)(?!.*art)[:\s]+(\d+)\s*(?:years?|yr)s?/i,
-            /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?experience(?!.*art)/i
-        ];
-
-        // Also explicitly exclude art-related years
-        const hasArtYears = /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?(?:art|drawing|music|dance|painting|sketching)/i.test(resumeInput);
-
-        const hasWorkExperience = workExperiencePatterns.some(pattern => pattern.test(resumeInput)) && !hasArtYears;
-
-        console.log('🔍 Resume Debug - Has art years:', hasArtYears);
-        console.log('🔍 Resume Debug - Has work experience:', hasWorkExperience);
-
-        if (!hasWorkExperience) {
-            enhancedResumeInput = `I have ${years} years of experience. ${resumeInput}`;
-            console.log('🔍 Resume Debug - After enhancement:', enhancedResumeInput.substring(0, 150) + '...');
-        } else {
-            console.log('🔍 Resume Debug - Resume already contains work experience, no enhancement needed');
-        }
+    console.log('🔍 Resume Debug - Original input:', resumeInput.substring(0, 100) + '...');
+    console.log('🔍 Resume Debug - Years provided:', years);
+    console.log('🔍 Resume Debug - Experience level:', experience);
+    
+    // Only add basic info if completely missing, let backend do the sophisticated extraction
+    if (!resumeInput.toLowerCase().includes('year') && !resumeInput.toLowerCase().includes('experience') && years && years !== '0' && years !== '') {
+        enhancedResumeInput = `${resumeInput} Experience: ${years} years`;
+        console.log('🔍 Resume Debug - Minimal enhancement:', enhancedResumeInput.substring(0, 150) + '...');
     } else {
-        console.log('🔍 Resume Debug - No valid years provided, forcing default');
-        enhancedResumeInput = `I have 3 years of experience. ${resumeInput}`;
-        console.log('🔍 Resume Debug - Forced enhancement:', enhancedResumeInput.substring(0, 150) + '...');
+        console.log('🔍 Resume Debug - Using original input, backend will handle extraction');
     }
 
     await generateCoverLetter('resume', enhancedResumeInput, jobDescription, targetRole, company, enhancedResumeInput, experience);
@@ -291,33 +260,18 @@ async function generateFromManual() {
         return;
     }
 
-    // Automatically add years to user input if not already mentioned
+    // Let backend handle experience extraction naturally - no forced enhancement
     let enhancedUserInput = userInput;
-    console.log('🔍 Manual Debug - Before enhancement:', enhancedUserInput);
-    console.log('🔍 Manual Debug - Years value:', years);
-    console.log('🔍 Manual Debug - User input includes "year":', userInput.toLowerCase().includes('year'));
-
-    // Force years to be included
-    if (years && years !== '0' && years !== '') {
-        // Check if user input already mentions WORK experience (not art, education, etc.)
-        const workExperiencePatterns = [
-            /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?(?:work|professional|industry|technical|software|programming|development|experience)/i,
-            /(?:work|professional|industry|technical|software|programming|development|experience)[:\s]+(\d+)\s*(?:years?|yr)s?/i,
-            /(\d+)\s*(?:years?|yr)s?\s*(?:of\s*)?experience/i
-        ];
-
-        const hasWorkExperience = workExperiencePatterns.some(pattern => pattern.test(userInput));
-
-        if (!hasWorkExperience) {
-            enhancedUserInput = `I have ${years} years of experience. ${userInput}`;
-            console.log('🔍 Manual Debug - After enhancement:', enhancedUserInput);
-        } else {
-            console.log('🔍 Manual Debug - User already contains work experience, no enhancement needed');
-        }
+    console.log('🔍 Manual Debug - Original input:', userInput);
+    console.log('🔍 Manual Debug - Years provided:', years);
+    console.log('🔍 Manual Debug - Experience level:', experience);
+    
+    // Only add basic info if completely missing, let backend do the sophisticated extraction
+    if (!userInput.toLowerCase().includes('year') && !userInput.toLowerCase().includes('experience') && years && years !== '0' && years !== '') {
+        enhancedUserInput = `${userInput} Experience: ${years} years`;
+        console.log('🔍 Manual Debug - Minimal enhancement:', enhancedUserInput);
     } else {
-        console.log('🔍 Manual Debug - No valid years provided, forcing default');
-        enhancedUserInput = `I have 3 years of experience. ${userInput}`;
-        console.log('🔍 Manual Debug - Forced enhancement:', enhancedUserInput);
+        console.log('🔍 Manual Debug - Using original input, backend will handle extraction');
     }
 
     await generateCoverLetter('manual_jd', enhancedUserInput, jobDescription, targetRole, company, '', experience);
@@ -481,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Skills section
     if (skillsYearsInput) {
         skillsYearsInput.addEventListener('input', function() {
-            console.log('🔍 Skills Years Input Changed:', this.value);
+            // console.log('🔍 Skills Years Input Changed:', this.value);
             categorizeExperience(this.value, 'skills-experience-auto');
         });
         categorizeExperience(skillsYearsInput.value, 'skills-experience-auto');
@@ -490,7 +444,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Resume section
     if (resumeYearsInput) {
         resumeYearsInput.addEventListener('input', function() {
-            console.log('🔍 Resume Years Input Changed:', this.value);
+            // console.log('🔍 Resume Years Input Changed:', this.value);
             categorizeExperience(this.value, 'resume-experience-auto');
         });
         categorizeExperience(resumeYearsInput.value, 'resume-experience-auto');
@@ -499,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Manual section
     if (manualYearsInput) {
         manualYearsInput.addEventListener('input', function() {
-            console.log('🔍 Manual Years Input Changed:', this.value);
+            // console.log('🔍 Manual Years Input Changed:', this.value);
             categorizeExperience(this.value, 'manual-experience-auto');
         });
         categorizeExperience(manualYearsInput.value, 'manual-experience-auto');
@@ -511,7 +465,7 @@ function categorizeExperience(years, selectId = 'skills-experience-auto') {
     const yearsNum = parseInt(years) || 0;
     const select = document.getElementById(selectId);
 
-    console.log(`🔍 Categorize Debug - Years: ${years}, Select ID: ${selectId}, Years Num: ${yearsNum}`);
+    // console.log(`🔍 Categorize Debug - Years: ${years}, Select ID: ${selectId}, Years Num: ${yearsNum}`);
 
     if (select) {
         if (yearsNum <= 1) {
@@ -523,8 +477,8 @@ function categorizeExperience(years, selectId = 'skills-experience-auto') {
         } else {
             select.value = 'expert';
         }
-        console.log(`🔍 Categorize Debug - Set to: ${select.value}`);
+        // console.log(`🔍 Categorize Debug - Set to: ${select.value}`);
     } else {
-        console.log(`🔍 Categorize Debug - Select element not found: ${selectId}`);
+        // console.log(`🔍 Categorize Debug - Select element not found: ${selectId}`);
     }
 }
